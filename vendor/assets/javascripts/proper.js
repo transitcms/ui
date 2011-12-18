@@ -126,6 +126,7 @@
         events = _.extend({}, _.Events),
         pendingChange = false,
         options = {},
+		toolbar_active = false,
         defaultOptions = { // default options
           multiline: true,
           markup: true,
@@ -133,6 +134,8 @@
 			html: controlsTpl,
 			target:''
 		  },
+		  onFocus: function(){},
+		  onBlur: function(){},
           placeholder: 'Enter Text',
           codeFontFamily: 'Monaco, Consolas, "Lucida Console", monospace',
 		  keyCommands: {
@@ -279,6 +282,9 @@
         }
       }
     };
+
+	commands.bold   = commands.strong;
+	commands.italic = commands.em;
     
     // Returns true if a and b is the same font family. This is used to check
     // if the current font family (`document.queryCommandValue('fontName')`)
@@ -652,8 +658,16 @@
       
       $(el)
         .bind('focus', maybeRemovePlaceholder)
-        .bind('blur', maybeInsertPlaceholder)
-        .bind('click', updateCommandState);
+        .bind('click', updateCommandState)
+		.bind('blur', function(event){
+			if( toolbar_active == true ){
+				event.preventDefault();
+				return false;
+			}
+			
+			maybeInsertPlaceholder();
+			deactivate();
+		});
       
       $(el).bind('keyup', function(e) {        
         updateCommandState();
@@ -677,22 +691,27 @@
     // -----------
 
     function deactivate () {
-      $(activeElement)
-        .attr('contenteditable', 'false')
-        .unbind('paste')
-        .unbind('keydown');
-      $('.proper-commands').remove();
-      events.unbind('changed');
+		if( $(activeElement).length ){
+			$(activeElement)
+		        .attr('contenteditable', 'false')
+		        .unbind('paste')
+		        .unbind('keydown');
+			 // $(options.controls.target).hide();
+			  events.trigger('inactive');
+		  	  events.unbind('changed');
+			  events.unbind('inactive');
+//			  options.onBlur.apply($(activeElement), [this]);
+		}	
     };
     
     // Activate editor for a given element
     function activate (el, opts) {
       options = {};
-      _.extend(options, defaultOptions, opts);
-      
       // Deactivate previously active element
       deactivate();
       
+	  _.extend(options, defaultOptions, opts);
+
       // Make editable
       $(el).attr('contenteditable', true);
       activeElement = el;
@@ -701,7 +720,9 @@
       // Setup controls
       if (options.markup) {
         $controls = $(options.controls.html); 
-        $controls.appendTo($(options.controls.target));
+		if( $(options.controls.target).length ){
+			$(options.controls.target).empty().append($controls).show();
+		}
       }
       
       // Keyboard bindings
@@ -716,20 +737,14 @@
 		for( var i in options.keyCommands ){
 			$(activeElement).keydown(options.keyCommands[i], execLater(i));
 		}
-        // $(activeElement)
-        //          .keydown('ctrl+shift+e', execLater('em'))
-        //          .keydown('ctrl+shift+s', execLater('strong'))
-        //          .keydown('ctrl+shift+c', execLater('code'))
-        //          .keydown('ctrl+shift+l', execLater('link'))
-        //          .keydown('ctrl+shift+b', execLater('ul'))
-        //          .keydown('ctrl+shift+n', execLater('ol'))
-        //          .keydown('tab',          execLater('indent'))
-        //          .keydown('shift+tab',    execLater('outdent'));
+     
 	  }
     
       $(activeElement).focus();
       updateCommandState();
       desemantifyContents($(activeElement));
+
+	  options.onFocus.apply($(activeElement), [this]);
       
       // Use <b>, <i> and <font face="monospace"> instead of style attributes.
       // This is convenient because these inline element can easily be replaced
@@ -739,8 +754,18 @@
       } catch (exc) {
         // This fails in Firefox.
       }
+
+	  $(options.controls.target).bind('mouseenter', 
+		function(event){
+			toolbar_active = true;
+		});
+		
+	  $(options.controls.target).bind('mouseleave', 
+	    function(event){
+			toolbar_active = false;
+		});
       
-      $('.proper-commands a.command').click(function(e) {
+      $('a.command', $(options.controls.target)).click(function(e) {
         e.preventDefault();
         $(activeElement).focus();
         exec($(e.currentTarget).attr('command'));

@@ -147,7 +147,21 @@
 			'ol'      : 'ctrl+shift+n',
 			'indent'  : 'tab',
 			'outdent' : 'shift+tab'
-		  }};
+		  }},
+		
+		sanitizer = new Sanitize({
+			attributes: {
+				'__ALL__': ['class'],
+				a: ['href', 'title', 'target'],
+				img: ['src','alt']
+			},
+			elements: [
+			    'a', 'b', 'blockquote', 'br', 'cite', 'code', 'dd', 'dl', 'dt', 'em',
+			    'i', 'li', 'ol', 'p', 'pre', 'q', 'small', 'strike', 'strong', 'sub',
+			    'sup', 'u', 'ul'
+			]
+		});	
+		
     
     // Commands
     // --------
@@ -238,7 +252,7 @@
           }
         }
       },
-
+	  	
       link: {
         exec: function() {
           removeFormat();
@@ -280,7 +294,13 @@
             document.execCommand('outdent', false, true);
           }
         }
-      }
+      },
+      
+      undo: {
+		exec: function(){
+			document.execCommand('undo', false, true);
+		}
+	  }
     };
 
 	commands.bold   = commands.strong;
@@ -327,6 +347,9 @@
     // presentational elements (e.g. `<b>`) with their semantic counterparts
     // (e.g. `<strong>`).
     function semantifyContents(node) {
+		
+	  node.html(sanitizer.clean_node(node.get(0)));
+	
       function replace(presentational, semantic) {
         node.find(presentational).each(function () {
           $(this).replaceWith($(document.createElement(semantic)).html($(this).html()));
@@ -336,7 +359,6 @@
       replace('b', 'strong');
       replace('.proper-code', 'code');
       replace('div', 'p');
-      //replace('span', 'span');
       
       node.find('span').each(function () {
         if (this.firstChild) {
@@ -424,10 +446,10 @@
     function updateCommandState() {
       if (!options.markup) return;
       
-      $controls.find('.command').removeClass('selected');
+      $controls.find('.command').removeClass('active');
       _.each(commands, function(command, name) {
         if (command.isActive && command.isActive()) {
-          $controls.find('.command.'+name).addClass('selected');
+          $controls.find('.command.'+name).addClass('active');
         }
       });
     }
@@ -696,11 +718,10 @@
 		        .attr('contenteditable', 'false')
 		        .unbind('paste')
 		        .unbind('keydown');
-			 // $(options.controls.target).hide();
-			  events.trigger('inactive');
-		  	  events.unbind('changed');
-			  events.unbind('inactive');
-//			  options.onBlur.apply($(activeElement), [this]);
+		  events.trigger('inactive');
+	  	  events.unbind('changed');
+		  events.unbind('inactive');
+		 content();
 		}	
     };
     
@@ -792,6 +813,14 @@
         }
       }
     };
+
+	function sanitize(){
+		sanitizeNode($(activeElement));
+	}
+	
+	function sanitizeNode(node){
+		$(node).html(sanitizer.clean_node($(node).get(0)));
+	}
     
     // Expose public API
     // -----------------
@@ -800,7 +829,8 @@
       bind:    function () { events.bind.apply(events, arguments); },
       unbind:  function () { events.unbind.apply(events, arguments); },
       trigger: function () { events.trigger.apply(events, arguments); },
-      
+      sanitize: sanitize,
+	  sanitizeNode: sanitizeNode,
       activate: activate,
       deactivate: deactivate,
       content: content,

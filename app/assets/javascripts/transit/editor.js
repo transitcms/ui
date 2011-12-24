@@ -3,7 +3,8 @@
 //= require hotkeys
 //= require proper
 
-(function($){
+(function($, undefined){
+	
 	var proper = new Proper(),		
 		Editor = function( el, options ){
 			var self   	 = this,
@@ -20,8 +21,9 @@
 				code: 	 { show: false, label: 'Code' },
 				ol: 	 { show: true, label: 'Numbered List' },
 				ul: 	 { show: true, label: 'Bulleted List' },
-				indent:  { show: true, label: 'Indent' },
-				outdent: { show: true, label: 'Outdent' }
+				undo: 	 { show: true, label: 'Undo' }
+				// indent:  { show: true, label: 'Indent' },
+				// outdent: { show: true, label: 'Outdent' }
 			};
 			
 			shortcuts = {
@@ -37,9 +39,10 @@
 				if( controls[i].show == false ) continue;				
 				control = $("<a href='#'></a>");
 				control.attr("title", controls[i].label);
-				control.text(controls[i].label);
-				control.addClass('command');
-				control.attr('command', i);
+				control.text(controls[i].label)
+					   .addClass('command')
+					   .addClass(i)
+					   .attr('command', i);
 				tools.append(control);
 				control.wrap('<li></li>');
 			}
@@ -66,6 +69,9 @@
 			editor.html(otext);
 			
 			editor.bind('click', activate_instance);
+			editor.bind('focusout', function(){
+				proper.sanitizeNode($(this));
+			});
 			
 			function activate_instance(event) {
 				var current = $(this), top_pos;
@@ -92,8 +98,8 @@
 					toolbar.hide();
 				});
 				
-				proper.bind('changed', function(){
-					target.val(proper.content());
+				proper.bind('changed', function(){					
+					target.val(proper.content());					
 				});
 			}
 			

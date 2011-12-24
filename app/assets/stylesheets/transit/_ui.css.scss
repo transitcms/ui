@@ -1,0 +1,28 @@
+$transit-icons: bold, italic, underline, strike, ul, ol, link, image, undo, text-block, inline-text, audio, video;
+$transit-icon-sprite:image-url('transit_ui/icons.png') !default;
+
+@function transit-icon($name, $offset_x:0px, $offset_y:0px){	
+	@for $i from 1 through length($transit-icons){
+		$icon:nth($transit-icons, $i);
+		@if $icon == $name{
+			@return #{$transit-icon-sprite} #{$offset_x} ((-24px*($i - 1)) + $offset_y) no-repeat;
+		}
+	}
+	@return "";
+}
+
+@function transit-icon-sprite-string($xval, $yval){
+	@return #{image-url('transit_ui/icons.png')} #{$xval} #{$yval};
+}
+
+@mixin transit-editor-icons{
+	-moz-opacity:.50; filter:alpha(opacity=50); opacity:.5;
+	&.active{ -moz-opacity:1; filter:alpha(opacity=100); opacity:1; }
+	&.bold{ background:transit-icon(bold); }
+	&.italic{ background:transit-icon(italic); }
+	&.ol{ background:transit-icon(ol); }
+	&.ul{ background:transit-icon(ul); }
+	&.image{ background:transit-icon(image); }
+	&.link{ background:transit-icon(link); }
+	&.undo{ background:transit-icon(undo); }
+}

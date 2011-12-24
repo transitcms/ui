@@ -2,7 +2,13 @@
 
 (function($, undefined){
 	
-	var transit = window.transit = jQuery.sub();
+	var transit = window.transit;
+	
+	if( typeof transit == 'undefined' ){
+		transit        = jQuery.sub();
+		window.transit = transit;
+	}
+	
 	
 	transit.fn.plugin = function(name, store){
 		var plugin;
